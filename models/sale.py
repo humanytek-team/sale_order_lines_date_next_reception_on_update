@@ -69,11 +69,21 @@ class SaleOrder(models.Model):
 
                     if line.product_id.incoming_qty > 0:
 
+                        tz = self.env.context.get('tz', False)
+                        if not tz:
+                            tz = 'America/Mexico_City'
+
+                        datetime_now_with_tz = datetime.now(timezone(tz))
+                        datetime_now = datetime_now_with_tz.strftime(
+                            '%Y-%m-%d %H:%M:%S'
+                        )
+
                         pickings = StockPicking.search([
                             ('picking_type_id.code', '=', 'incoming'),
                             ('state', '=', 'assigned'),
                             ('move_lines_related.product_id', '=',
                             line.product_id.id),
+                            ('min_date', '>=', datetime_now),
                         ], order='min_date')
 
                         if pickings:
