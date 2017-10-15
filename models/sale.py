@@ -53,9 +53,10 @@ class SaleOrder(models.Model):
     def button_dummy(self):
 
         super(SaleOrder, self).button_dummy()
-        message = _('Not enough inventory!') + '\n'
 
+        message = _('Not enough inventory!') + '\n'
         StockPicking = self.env['stock.picking']
+        products_without_stock = False
 
         for line in self.order_line:
             if line.product_id.type == 'product':
@@ -66,6 +67,9 @@ class SaleOrder(models.Model):
 
                 if product_qty > (line.product_id.qty_available -
                     line.product_id.outgoing_qty) and product_qty > 0:
+
+                    if not products_without_stock:
+                        products_without_stock = True
 
                     if line.product_id.incoming_qty > 0:
 
@@ -102,5 +106,17 @@ class SaleOrder(models.Model):
                                     )
                             message += '\n'
 
-        if message != _('Not enough inventory! \n') + '\n':
+                    else:
+
+                        message += '{0} \n'.format(line.product_id.display_name)
+                        message += _('You plan to sell %.2f %s but the stock on hand is %.2f %s.') % \
+                            (
+                                line.product_uom_qty,
+                                line.product_uom.name,
+                                line.product_id.qty_available,
+                                line.product_id.uom_id.name
+                                )
+                        message += '\n'
+
+        if products_without_stock:
             raise UserError(message)
